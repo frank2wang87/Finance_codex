@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Fetching...</title></head>
+<body>
+<h2>正在获取A股数据...</h2>
+<div id="status">Loading...</div>
+<script>
+async function main() {
+    const status = document.getElementById('status');
+    const pages = 3;
+    let allDiff = [];
+    let total = 0;
+    for (let p = 1; p <= pages; p++) {
+        status.textContent = '获取第 ' + p + '/' + pages + ' 页... (' + allDiff.length + ' 只)';
+        const url = 'https://82.push2.eastmoney.com/api/qt/clist/get?pn=' + p + '&pz=100&po=1&np=1&ut=bd1d9ddb04089700cf9c27f6f7426281&fltt=2&invt=2&fid=f3&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f2,f3,f4,f5,f6,f7,f8,f9,f10,f12,f14,f15,f16,f17,f18,f20,f21';
+        try {
+            const r = await fetch(url);
+            const data = await r.json();
+            const diff = data.data && data.data.diff || [];
+            total = data.data && data.data.total || 0;
+            allDiff = allDiff.concat(diff);
+            document.title = 'Page ' + p + '/' + pages + ' - ' + allDiff.length + ' stocks';
+            if (p * 100 >= total) break;
+        } catch(e) {
+            status.textContent = '错误: ' + e.message;
+            document.title = 'ERROR';
+            return;
+        }
+        if (p < pages) await new Promise(r => setTimeout(r, 500));
+    }
+    const result = JSON.stringify({data: {diff: allDiff, total: total}});
+    const blob = new Blob([result], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'stock_data.json';
+    document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+    status.textContent = '完成! 已获取 ' + allDiff.length + ' 只股票, 正在下载...';
+    document.title = 'DONE - ' + allDiff.length + ' stocks';
+}
+main();
+</script>
+</body>
+</html>
